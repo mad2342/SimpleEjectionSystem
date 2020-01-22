@@ -1,6 +1,6 @@
 # Simple Ejection System
 
-[Battletech Mod][ModTek] Introduces stress levels for pilots and ejection rolls for all but the commander.
+[Battletech Mod][ModTek] Introduces stress levels and ejection rolls for pilots.
 
 ## Fixes
 
