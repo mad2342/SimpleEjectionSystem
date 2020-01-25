@@ -3,6 +3,7 @@
     internal class Settings
     {
         public float EjectionChanceMax = 25f;
+        public float IsGoingToDieEjectionChance = 90f;
 
         // Exits
         public bool PlayerCharacterAlwaysResists = true;
@@ -16,6 +17,10 @@
         public float InspiredEjectionResist = 2;
         public float PilotHighMoraleEjectionResist = 2;
         public float CommanderFieldedEjectionResist = 3;
+
+        // Additional resists for inbetween attacks
+        public float PilotStillAtFullHealthModifier = 2;
+        public float MechStillAtGoodHealthModifier = 2;
 
         // Static Modifiers
         public float PilotLowMoraleModifier = 2;
@@ -36,6 +41,5 @@
         public float AttackCausedAmmoExplosionModifier = 3;
         public float AttackDestroyedWeaponModifier = 2;
         public float NextShotLikeThatCouldKillModifier = 10;
-        public float IsGoingToDieModifier = 50;
     }
 }

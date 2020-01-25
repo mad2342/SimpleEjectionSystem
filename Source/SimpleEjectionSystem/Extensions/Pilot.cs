@@ -16,7 +16,7 @@ namespace SimpleEjectionSystem.Extensions
             {
                 pilot.StatCollection.AddStatistic<float>("LastEjectionChance", lec);
             }
-            Logger.Debug($"[PilotExtensions_GetLastEjectionChance] ({pilot.Callsign}) LastEjectionChance: {lec}");
+            Logger.Info($"[PilotExtensions_GetLastEjectionChance] ({pilot.Callsign}) LastEjectionChance: {lec}");
             return lec;
         }
 
@@ -35,7 +35,7 @@ namespace SimpleEjectionSystem.Extensions
             {
                 pilot.StatCollection.AddStatistic<float>("LastEjectionChance", num);
             }
-            Logger.Debug($"[PilotExtensions_SetLastEjectionChance] ({pilot.Callsign}) LastEjectionChance: {num}");
+            Logger.Info($"[PilotExtensions_SetLastEjectionChance] ({pilot.Callsign}) LastEjectionChance: {num}");
         }
 
         public static int GetStressLevel(this Pilot pilot)
@@ -49,7 +49,7 @@ namespace SimpleEjectionSystem.Extensions
             {
                 pilot.StatCollection.AddStatistic<int>("StressLevel", sl);
             }
-            Logger.Debug($"[PilotExtensions_GetStressLevel] ({pilot.Callsign}) StressLevel: {sl}");
+            Logger.Info($"[PilotExtensions_GetStressLevel] ({pilot.Callsign}) StressLevel: {sl}");
             return sl;
         }
 
@@ -68,7 +68,7 @@ namespace SimpleEjectionSystem.Extensions
             {
                 pilot.StatCollection.AddStatistic<int>("StressLevel", num);
             }
-            Logger.Debug($"[PilotExtensions_SetStressLevel] ({pilot.Callsign}) StressLevel: {num}");
+            Logger.Info($"[PilotExtensions_SetStressLevel] ({pilot.Callsign}) StressLevel: {num}");
 
             return pilot;
         }
@@ -86,7 +86,7 @@ namespace SimpleEjectionSystem.Extensions
             }
             sl = Math.Min(4, sl + num);
             pilot.StatCollection.Set<int>("StressLevel", sl);
-            Logger.Debug($"[PilotExtensions_IncreaseStressLevel] ({pilot.Callsign}) StressLevel: {sl}");
+            Logger.Info($"[PilotExtensions_IncreaseStressLevel] ({pilot.Callsign}) StressLevel: {sl}");
 
             return pilot;
         }
@@ -104,7 +104,7 @@ namespace SimpleEjectionSystem.Extensions
             }
             sl = Math.Max(0, sl - num);
             pilot.StatCollection.Set<int>("StressLevel", sl);
-            Logger.Debug($"[PilotExtensions_DecreaseStressLevel] ({pilot.Callsign}) StressLevel: {sl}");
+            Logger.Info($"[PilotExtensions_DecreaseStressLevel] ({pilot.Callsign}) StressLevel: {sl}");
 
             return pilot;
         }
@@ -120,7 +120,7 @@ namespace SimpleEjectionSystem.Extensions
             {
                 pilot.StatCollection.AddStatistic<int>("StressLevel", sl);
             }
-            Logger.Debug($"[PilotExtensions_IsDesperate] ({pilot.Callsign}) IsDesperate: {(sl >= 4)}");
+            Logger.Info($"[PilotExtensions_IsDesperate] ({pilot.Callsign}) IsDesperate: {(sl >= 4)}");
             return (sl >= 4);
         }
     }

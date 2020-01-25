@@ -44,7 +44,16 @@ namespace SimpleEjectionSystem.Control
 
             // Ejection modifiers
             float ejectModifiers = 0;
-            ejectModifiers += Assess.GetEjectionModifiersFromState(mech, pilot);
+            ejectModifiers += Assess.GetEjectionModifiersFromState(mech, pilot, out bool isGoingToDie);
+
+            // Shortcutting
+            if (isGoingToDie)
+            {
+                stressLevel = pilot.SetStressLevel(4).GetStressLevel();
+                ejectionChance = SimpleEjectionSystem.Settings.IsGoingToDieEjectionChance;
+                return true;
+            }
+
             ejectModifiers += Assess.GetEjectionModifiersFromAttack(mech, attackSequence);
 
             // Resistance modifiers
@@ -52,28 +61,31 @@ namespace SimpleEjectionSystem.Control
             resistModifiers += Assess.GetResistanceModifiers(mech);
 
             // Evaluate
-            Logger.Debug("---");
             float finalModifiers = (ejectModifiers - resistModifiers) * 5;
             Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) finalModifiers: {finalModifiers}");
 
-            if (finalModifiers < 0)
+            if (finalModifiers <= 0)
             {
                 Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) RESISTED!");
-                Logger.Debug("---");
+                Logger.Info("---");
                 return false;
             }
+            Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) Resistances BREACHED!");
 
             // Raise pilot's stresslevel
             stressLevel = pilot.IncreaseStressLevel(1).GetStressLevel();
+            Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) stressLevel: {stressLevel}");
 
             // Sanitize ejection chance
             ejectionChance = Math.Min(100, finalModifiers);
+            Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) ejectionChance: {ejectionChance}");
 
             // Save ejection chance in pilot's StatCollection to potentially use it on next activation
             pilot.SetLastEjectionChance(ejectionChance);
 
-            Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) Resistances BREACHED!");
-            Logger.Debug("---");
+            
+
+            Logger.Info("---");
 
             return true;
         }

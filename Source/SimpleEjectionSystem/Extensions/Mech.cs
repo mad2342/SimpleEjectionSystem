@@ -37,7 +37,7 @@ namespace SimpleEjectionSystem.Extensions
             bool legged = mech.IsLegged;
 
             isUseless = unarmed && alone && legged;
-            Logger.Debug($"[MechExtensions_IsUseless] ({mech.DisplayName}) isUseless: {isUseless}");
+            Logger.Info($"[MechExtensions_IsUseless] ({mech.DisplayName}) isUseless: {isUseless}");
 
             return isUseless;
         }
@@ -56,7 +56,7 @@ namespace SimpleEjectionSystem.Extensions
                 rolls = 1;
                 m.StatCollection.AddStatistic<int>("EjectionRolls", rolls);
             }
-            Logger.Debug($"[MechExtensions_AddEjectionRoll] ({m.DisplayName}) EjectionRolls: {rolls}");
+            Logger.Info($"[MechExtensions_AddEjectionRoll] ({m.DisplayName}) EjectionRolls: {rolls}");
         }
     }
 }

@@ -7,6 +7,20 @@ namespace SimpleEjectionSystem.Control
 {
     internal static class Actor
     {
+        public static bool TryResistStressIncrease(Mech mech, Pilot pilot, out int stressLevel)
+        {
+            float modifiers = Assess.GetResistanceModifiers(mech, true);
+
+            // Rolling...
+            int randomRoll = (new System.Random()).Next(100);
+            float resistanceChance = Math.Min(modifiers, 95);
+            bool success = (randomRoll < resistanceChance);
+            Logger.Info($"[Actor_TryResistStressIncrease] ({mech.DisplayName})  Success: {success}");
+            stressLevel = success ? pilot.GetStressLevel() : pilot.IncreaseStressLevel(1).GetStressLevel();
+
+            return success;
+        }
+
         public static bool TryReduceStressLevel(Mech mech, Pilot pilot, out int stressLevel)
         {
             float modifiers = Assess.GetResistanceModifiers(mech, true);
