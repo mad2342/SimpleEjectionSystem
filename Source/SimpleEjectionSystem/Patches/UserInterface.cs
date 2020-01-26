@@ -17,6 +17,7 @@ namespace SimpleEjectionSystem.Patches
         private static bool OverrideFloatiePilotDamage = false;
         private static Color OverrideFloatiePilotDamageColor = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.FloatiePilotDamage.color;
 
+        //private static CombatHUDStatusStackItem _passiveStackItemMech;
 
 
         [HarmonyPatch(typeof(CombatHUDFloatieStack), "AddFloatie", new Type[] { typeof(Text), typeof(FloatieMessage.MessageNature) })]
@@ -26,11 +27,12 @@ namespace SimpleEjectionSystem.Patches
             {
                 try
                 {
-                    Logger.Debug($"[CombatHUDFloatieStack_AddFloatie_PREFIX] text: {text}");
-                    Logger.Debug($"[CombatHUDFloatieStack_AddFloatie_PREFIX] nature: {nature}");
+                    //Logger.Debug($"[CombatHUDFloatieStack_AddFloatie_PREFIX] text: {text}");
+                    //Logger.Debug($"[CombatHUDFloatieStack_AddFloatie_PREFIX] nature: {nature}");
 
                     if (nature == FloatieMessage.MessageNature.PilotInjury && Miscellaneous.TryGetStressLevelColor(text.ToString(), out Color color))
                     {
+                        Logger.Debug($"[CombatHUDFloatieStack_AddFloatie_PREFIX] SET override color for FloatieMessage.MessageNature.PilotInjury");
                         OverrideFloatiePilotDamage = true;
                         OverrideFloatiePilotDamageColor = color;
                     }
@@ -48,6 +50,7 @@ namespace SimpleEjectionSystem.Patches
                     // Reset
                     OverrideFloatiePilotDamage = false;
                     OverrideFloatiePilotDamageColor = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.FloatiePilotDamage.color;
+                    //Logger.Debug($"[CombatHUDFloatieStack_AddFloatie_PREFIX] RESETTED color for FloatieMessage.MessageNature.PilotInjury");
                 }
                 catch (Exception e)
                 {
@@ -65,6 +68,7 @@ namespace SimpleEjectionSystem.Patches
                 {
                     if (nature == FloatieMessage.MessageNature.PilotInjury && OverrideFloatiePilotDamage)
                     {
+                        Logger.Debug($"[CombatHUDFloatieStack_AddFloatie_PREFIX] OVERRIDING color for FloatieMessage.MessageNature.PilotInjury");
                         __result = OverrideFloatiePilotDamageColor;
 
                         return false;
@@ -72,7 +76,10 @@ namespace SimpleEjectionSystem.Patches
 
                     if (nature == FloatieMessage.MessageNature.Inspiration)
                     {
+                        Logger.Debug($"[CombatHUDFloatieStack_AddFloatie_PREFIX] OVERRIDING color for FloatieMessage.MessageNature.Inspiration");
                         __result = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PilotInspired.color;
+
+                        return false;
                     }
 
                     return true;
@@ -89,36 +96,43 @@ namespace SimpleEjectionSystem.Patches
         [HarmonyPatch(typeof(CombatHUDMWStatus), "InitForPilot")]
         public static class CombatHUDMWStatus_InitForPilot_Patch
         {
-            public static void Postfix(CombatHUDMWStatus __instance, Pilot pilot, SVGAsset highMorale, SVGAsset lowMorale, CombatHUD ___HUD)
+            // Completeley overriding original method
+            public static bool Prefix(CombatHUDMWStatus __instance, Pilot pilot)
             {
                 try
                 {
-                    if (pilot == null)
+                    if (!(pilot.ParentActor is Mech mech))
                     {
-                        return;
+                        return true;
                     }
-                    Logger.Debug($"[CombatHUDMWStatus_InitForPilot_POSTFIX] Pilot: {pilot.Callsign}");
+                    Logger.Info($"[CombatHUDMWStatus_InitForPilot_PREFIX] Pilot: {pilot.Callsign}");
 
-                    List<CombatHUDStatusStackItem> ___stackItems = (List<CombatHUDStatusStackItem>)AccessTools.Field(typeof(CombatHUDStatusItemList), "stackItems").GetValue(__instance.PassivesList);
+                    // These never change during a mission so they can stay here
+                    __instance.MWStatsList.ClearAllStatuses();
+                    __instance.MWStatsList.ShowItem(pilot.Tactics, new Text("TACTICS", Array.Empty<object>()), new List<Text>(), new List<Text>());
+                    __instance.MWStatsList.ShowItem(pilot.Guts, new Text("GUTS", Array.Empty<object>()), new List<Text>(), new List<Text>());
+                    __instance.MWStatsList.ShowItem(pilot.Piloting, new Text("PILOTING", Array.Empty<object>()), new List<Text>(), new List<Text>());
+                    __instance.MWStatsList.ShowItem(pilot.Gunnery, new Text("GUNNERY", Array.Empty<object>()), new List<Text>(), new List<Text>());
 
-                    ___stackItems.Clear();
-                    __instance.PassivesList.Init(___HUD, CombatHUDTooltipHoverElement.ToolTipOrientation.None, Vector3.zero);
-                    __instance.PassivesList.ClearAllStatuses();
+                    // All potentially changing info goes in this method as it's the only one called after init
+                    __instance.RefreshPilot(pilot);
 
-                    if (pilot.HasHighMorale)
-                    {
-                        SVGAsset highSpiritsIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.CommandButtonIcon;
-                        __instance.PassivesList.ShowItem(highSpiritsIcon, new Text("HIGH SPIRITS", Array.Empty<object>()), new List<Text>(), new List<Text>()).Icon.color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.blue;
-                    }
-                    else if (pilot.HasLowMorale)
-                    {
-                        SVGAsset lowSpiritsIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.CommandButtonIcon;
-                        __instance.PassivesList.ShowItem(lowSpiritsIcon, new Text("LOW SPIRITS", Array.Empty<object>()), new List<Text>(), new List<Text>()).Icon.color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.orange;
-                    }
+                    __instance.InjuriesItem.UpdateVisibility();
+                    __instance.InspiredItem.UpdateVisibility();
+                    __instance.MWStatsList.UpdateStatusVisibilities();
+                    __instance.PassivesList.UpdateStatusVisibilities();
+                    __instance.ExpandedParentObject.SetActive(false);
+
+
+
+                    // Skipping original method
+                    return false;
                 }
                 catch (Exception e)
                 {
                     Logger.Error(e);
+
+                    return true;
                 }
             }
         }
@@ -127,57 +141,65 @@ namespace SimpleEjectionSystem.Patches
         [HarmonyPatch(typeof(CombatHUDMWStatus), "RefreshPilot")]
         public static class CombatHUDMWStatus_RefreshPilot_Patch
         {
-            public static void Postfix(CombatHUDMWStatus __instance, Pilot pilot)
+            // Completeley overriding original method
+            public static bool Prefix(CombatHUDMWStatus __instance, Pilot pilot)
             {
                 try
                 {
-                    if (pilot == null)
-                    {
-                        return;
-                    }
                     if(!(pilot.ParentActor is Mech mech))
                     {
-                        return;
+                        return true;
                     }
+                    Logger.Info($"[CombatHUDMWStatus_RefreshPilot_PREFIX] Pilot: {pilot.Callsign}");
 
-                    CombatHUDStatusStackItem pilotStateHeader = __instance.InjuriesItem;
-                    Color perfect = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.white;
-                    Color good = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.green;
-                    Color average = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.StabilityPipsShown.color;
+                    Color inspired = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.blue;
+                    Color good = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.white;
+                    Color medium = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.StabilityPipsShown.color;
                     Color bad = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.orange;
                     Color critical = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.FloatiePilotDamage.color;
 
+                    // Utilize the former injuries item as a general state description
+                    CombatHUDStatusStackItem pilotStateHeader = __instance.InjuriesItem;
                     int stressLevel = pilot.GetStressLevel();
-                    Localize.Text stressLevelDescription = new Localize.Text(Miscellaneous.GetStressLevelString(stressLevel), Array.Empty<object>());
-                    Localize.Text unknownDescription = new Localize.Text("UNKNOWN", Array.Empty<object>());
-                    Localize.Text stateDescription = pilot.IsIncapacitated || pilot.HasEjected ? unknownDescription : stressLevelDescription;
+                    Localize.Text stressLevelDescriptor = new Localize.Text(Miscellaneous.GetStressLevelString(stressLevel), Array.Empty<object>());
+                    Localize.Text unknownDescriptor = new Localize.Text("UNKNOWN", Array.Empty<object>());
+                    Localize.Text stateDescriptor = pilot.IsIncapacitated || pilot.HasEjected ? unknownDescriptor : stressLevelDescriptor;
 
                     SVGAsset stateIcon = __instance.InjuriesItem.Icon.vectorGraphics;
                     //SVGAsset stateIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.FloatieIconPilotInjury;
                     Color stateColor = Miscellaneous.GetStressLevelColor(stressLevel);
 
                     //pilotStateHeader.ShowIcon(stateIcon, stateDescription, stateColor);
-                    pilotStateHeader.ShowExistingIcon(stateDescription, stateColor);
-                    pilotStateHeader.AddTooltipString(new Localize.Text("CARE FOR YOUR PILOT'S CONDITION OR THEY WILL LIKELY EJECT", new object[] { }), EffectNature.Buff);
+                    pilotStateHeader.ShowExistingIcon(stateDescriptor, stateColor);
+                    pilotStateHeader.AddTooltipString(new Localize.Text("???WILL THIS BE VISIBLE ANYWHERE AT ALL???", new object[] { }), EffectNature.Buff);
 
-
-
-                    // BEN: Beware! __instance.PassiveList needs to be cleared as it only has 20 "stackslots" available and there is no safeguard. What a bullshit interface design.
-                    /*
-                    Logger.Debug($"[CombatHUDMWStatus_RefreshPilot_PREFIX] __instance.PassivesList.Count: {__instance.PassivesList.Count}");
-                    Logger.Debug($"[CombatHUDMWStatus_RefreshPilot_PREFIX] __instance.PassivesList.DisplayedStatusCount: {__instance.PassivesList.DisplayedStatusCount}");
-                    List<CombatHUDStatusStackItem> ___stackItems = (List<CombatHUDStatusStackItem>)AccessTools.Field(typeof(CombatHUDStatusItemList), "stackItems").GetValue(__instance.PassivesList);
-                    Logger.Debug($"[CombatHUDMWStatus_RefreshPilot_PREFIX] __instance.PassivesList.___stackItems: {___stackItems}");
+                    __instance.InspiredItem.Free();
+                    
+                    /* TRY: Put pilots personal morale (high|low spirits) in InspiredItem?
+                    if (pilot.HasHighMorale)
+                    {
+                        Localize.Text highSpiritsDescriptor = new Localize.Text("HIGH SPIRITS", Array.Empty<object>());
+                        Color highSpiritsColor = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.blue;
+                        __instance.InspiredItem.ShowExistingIcon(highSpiritsDescriptor, highSpiritsColor);
+                    }
+                    else if (pilot.HasLowMorale)
+                    {
+                        Localize.Text lowSpiritsDescriptor = new Localize.Text("LOW SPIRITS", Array.Empty<object>());
+                        Color lowSpiritsColor = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.orange;
+                        __instance.InspiredItem.ShowExistingIcon(lowSpiritsDescriptor, lowSpiritsColor);
+                    }
                     */
+
+
+
+                    // Passives
+                    // BEWARE: This needs to be cleared everytime as there's a limited number of stackslots available and there are no control mechanisms or safeguards available!
                     __instance.PassivesList.ClearAllStatuses();
-
-
 
                     // Injuries
                     SVGAsset injuriesIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.FloatieIconPilotInjury;
                     Localize.Text injuriesText;
                     Color injuriesColor;
-
                     if (pilot.IsIncapacitated)
                     {
                         injuriesText = new Localize.Text("INCAPACITATED", new object[] { });
@@ -190,10 +212,12 @@ namespace SimpleEjectionSystem.Patches
                             pilot.Injuries,
                             pilot.Health
                         });
-                        float pilotHealthRatio = ((pilot.Health - pilot.Injuries) / pilot.Health);
-                        injuriesColor = (pilotHealthRatio < 0.4) ? bad : (pilotHealthRatio < 0.6) ? average : (pilotHealthRatio < 0.8) ? good : perfect;
+                        float pilotRemainingHealth = pilot.Health - pilot.Injuries;
+                        injuriesColor = (pilotRemainingHealth == 1) ? critical : (pilotRemainingHealth == 2) ? bad : (pilotRemainingHealth < pilot.Health) ? medium : good;
                     }
                     __instance.PassivesList.ShowItem(injuriesIcon, injuriesText, new List<Localize.Text>(), new List<Localize.Text>()).Icon.color = injuriesColor;
+
+
 
                     // StressLevel
                     SVGAsset stressLevelIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.FloatieIconPilotInjury;
@@ -205,77 +229,80 @@ namespace SimpleEjectionSystem.Patches
                     Color stressLevelColor = Miscellaneous.GetStressLevelColor(stressLevel);
                     __instance.PassivesList.ShowItem(stressLevelIcon, stressLevelText, new List<Localize.Text>(), new List<Localize.Text>()).Icon.color = stressLevelColor;
 
+
+
                     // Fortitude (Derived from resists, morale and combat experience)
-                    SVGAsset fortitudeIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.MoraleDefendButtonIcon;
                     int fortitudeValue = (int)Math.Round(Assess.GetResistanceModifiers(mech, true, false));
+
+                    SVGAsset fortitudeIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.MoraleDefendButtonIcon;
                     Localize.Text fortitudeText = new Localize.Text("FORTITUDE: {0}{1}", new object[]
                     {
                         fortitudeValue,
                         ""
                     });
-                    Color fortitudeColor;
-
-                    if (pilot.HasMoraleInspiredEffect)
-                    {
-                        fortitudeColor = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.PilotInspired.color;
-                    }
-                    else
-                    {
-                        //fortitudeColor = (fortitudeValue < 20) ? bad : (fortitudeValue < 30) ? average : good;
-                        fortitudeColor = perfect;
-                    }
+                    Color fortitudeColor = pilot.HasMoraleInspiredEffect ? inspired : good;
                     __instance.PassivesList.ShowItem(fortitudeIcon, fortitudeText, new List<Localize.Text>(), new List<Localize.Text>()).Icon.color = fortitudeColor;
 
-                    // Mech Health
-                    SVGAsset mechHealthIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.StatusCoverIcon;
-                    if (pilot.ParentActor?.UnitType == UnitType.Mech)
-                    {
-                        Mech m = pilot.ParentActor as Mech;
-                        float mechHealthRatio = (m.SummaryStructureCurrent + m.SummaryArmorCurrent) / (m.SummaryStructureMax + m.SummaryArmorMax);
-                        int mechHealthPercent = (int)Math.Round(mechHealthRatio * 100);
-                        Localize.Text mechHealthText = new Localize.Text("MECH: {0}{1}", new object[]
-                        {
-                            mechHealthPercent,
-                            "%"
-                        });
-                        Color mechHealthColor = (mechHealthPercent <= 25) ? critical : (mechHealthPercent <= 50) ? bad : (mechHealthPercent <= 75) ? average : (mechHealthPercent <= 95) ? good : perfect;
-                        __instance.PassivesList.ShowItem(mechHealthIcon, mechHealthText, new List<Localize.Text>(), new List<Localize.Text>()).Icon.color = mechHealthColor;
-                    }
 
-                    // Weapons
-                    SVGAsset weaponHealthIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.SmallHardpointIcon;
-                    if (pilot.ParentActor?.UnitType == UnitType.Mech)
-                    {
-                        Mech m = pilot.ParentActor as Mech;
-                        int functionalWeapons = m.Weapons.FindAll(w => w.DamageLevel == ComponentDamageLevel.Functional).Count;
-                        int penalizedWeapons = m.Weapons.FindAll(w => w.DamageLevel == ComponentDamageLevel.Penalized).Count;
-                        float weaponHealthRatio = (functionalWeapons - penalizedWeapons / 2) / (m.Weapons.Count);
-                        int weaponHealthPercent = (int)Math.Round(weaponHealthRatio * 100);
-                        Localize.Text weaponHealthText = new Localize.Text("WEAPONS: {0}{1}", new object[]
-                        {
-                            weaponHealthPercent,
-                            "%"
-                        });
-                        Color weaponHealthColor = (weaponHealthPercent <= 25) ? critical : (weaponHealthPercent <= 50) ? bad : (weaponHealthPercent <= 75) ? average : (weaponHealthPercent <= 95) ? good : perfect;
-                        __instance.PassivesList.ShowItem(weaponHealthIcon, weaponHealthText, new List<Localize.Text>(), new List<Localize.Text>()).Icon.color = weaponHealthColor;
-                    }
 
-                    // Refresh colors? No joy
-                    /*
-                    List<CombatHUDStatusStackItem> stackItems = Traverse.Create(__instance.PassivesList).Field("stackItems").GetValue<List<CombatHUDStatusStackItem>>();
-                    foreach (CombatHUDStatusStackItem item in stackItems)
+                    /* High|Low spirits
+                    if (pilot.HasHighMorale)
                     {
-                        if(item.IsInUse)
-                        {
-                            item.Icon.SetAllDirty();
-                        }
+                        SVGAsset highSpiritsIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.StatusInspiredIcon;
+                        Localize.Text highSpiritsDescriptor = new Localize.Text("HIGH SPIRITS", Array.Empty<object>());
+                        Color highSpiritsColor = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.blue;
+                        __instance.PassivesList.ShowItem(highSpiritsIcon, highSpiritsDescriptor, new List<Localize.Text>(), new List<Localize.Text>()).Icon.color = highSpiritsColor;
+
+                        // REF: This variant doesn't change anything regarding color updates
+                        //CombatHUDStatusStackItem passiveStackItemHighSpirits = __instance.PassivesList.ShowItem(highSpiritsIcon, new Text("DUMMY", Array.Empty<object>()), new List<Localize.Text>(), new List<Localize.Text>());
+                        //passiveStackItemHighSpirits.ShowExistingIcon(highSpiritsDescriptor, highSpiritsColor);
                     }
-                    //__instance.PassivesList.UpdateStatusVisibilities();
+                    else if (pilot.HasLowMorale)
+                    {
+                        SVGAsset lowSpiritsIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.StatusInspiredIcon;
+                        Localize.Text lowSpiritsDescriptor = new Localize.Text("LOW SPIRITS", Array.Empty<object>());
+                        Color lowSpiritsColor = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.orange;
+                        __instance.PassivesList.ShowItem(lowSpiritsIcon, lowSpiritsDescriptor, new List<Localize.Text>(), new List<Localize.Text>()).Icon.color = lowSpiritsColor;
+                    }
                     */
+
+
+
+                    // Weapons 
+                    int functionalWeapons = mech.Weapons.FindAll(w => w.DamageLevel == ComponentDamageLevel.Functional).Count;
+                    int penalizedWeapons = mech.Weapons.FindAll(w => w.DamageLevel == ComponentDamageLevel.Penalized).Count;
+                    float weaponHealthRatio = (float)(functionalWeapons - penalizedWeapons / 2) / (float)mech.Weapons.Count;
+                    int weaponHealthPercent = (int)Math.Round(weaponHealthRatio * 100);
+
+                    SVGAsset weaponHealthIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.SmallHardpointIcon;
+                    Localize.Text weaponHealthText = new Localize.Text("WEAPONS: {0}{1}", new object[]
+                    {
+                        weaponHealthPercent,
+                        "%"
+                    });
+                    Color weaponHealthColor = (weaponHealthPercent <= 25) ? critical : (weaponHealthPercent <= 50) ? bad : (weaponHealthPercent <= 75) ? medium : good;
+                    __instance.PassivesList.ShowItem(weaponHealthIcon, weaponHealthText, new List<Localize.Text>(), new List<Localize.Text>()).Icon.color = weaponHealthColor;
+                    
+
+
+                    // Mech Health
+                    float mechHealthRatio = (mech.SummaryStructureCurrent + mech.SummaryArmorCurrent) / (mech.SummaryStructureMax + mech.SummaryArmorMax);
+                    int mechHealthPercent = (int)Math.Round(mechHealthRatio * 100);
+
+                    SVGAsset mechHealthIcon = LazySingletonBehavior<UIManager>.Instance.UILookAndColorConstants.StatusCoverIcon;
+                    Localize.Text mechHealthDescriptor = new Localize.Text("MECH: {0}{1}", new object[] { mechHealthPercent, "%" });
+                    Color mechHealthColor = (mechHealthPercent <= 25) ? critical : (mechHealthPercent <= 55) ? bad : (mechHealthPercent <= 85) ? medium : good;
+                    __instance.PassivesList.ShowItem(mechHealthIcon, mechHealthDescriptor, new List<Localize.Text>(), new List<Localize.Text>()).Icon.color = mechHealthColor;
+
+
+
+                    // Skipping original method
+                    return false;
                 }
                 catch (Exception e)
                 {
                     Logger.Error(e);
+                    return true;
                 }
             }
         }

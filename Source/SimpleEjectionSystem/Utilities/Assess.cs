@@ -8,13 +8,12 @@ namespace SimpleEjectionSystem.Utilities
     {
         public static float GetEjectionModifiersFromState(Mech mech, Pilot pilot, out bool isGoingToDie)
         {
-            Logger.Info("---");
             isGoingToDie = false;
             float ejectModifiers = 0f;
 
             // Head
             float headHealthRatio = mech.GetRemainingHealthRatio(ArmorLocation.Head);
-            Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) headHealthRatio: {headHealthRatio}");
+            Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) headHealthRatio: {headHealthRatio}");
             if (headHealthRatio < 1)
             {
                 ejectModifiers += SimpleEjectionSystem.Settings.HeadDamageMaxModifier * (1 - headHealthRatio);
@@ -23,7 +22,7 @@ namespace SimpleEjectionSystem.Utilities
 
             // Center Torso
             float ctHealthRatio = mech.GetRemainingHealthRatio(ArmorLocation.CenterTorso);
-            Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) ctHealthRatio: {ctHealthRatio}");
+            Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) ctHealthRatio: {ctHealthRatio}");
             if (ctHealthRatio < 1)
             {
                 ejectModifiers += SimpleEjectionSystem.Settings.CTDamageMaxModifier * (1 - ctHealthRatio);
@@ -32,14 +31,14 @@ namespace SimpleEjectionSystem.Utilities
 
             // Side Torsos
             float ltStructureRatio = mech.GetCurrentStructure(ChassisLocations.LeftTorso) / mech.GetMaxStructure(ChassisLocations.LeftTorso);
-            Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) ltStructureRatio: {ltStructureRatio}");
+            Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) ltStructureRatio: {ltStructureRatio}");
             if (ltStructureRatio < 1)
             {
                 ejectModifiers += SimpleEjectionSystem.Settings.SideTorsoInternalDamageMaxModifier * (1 - ltStructureRatio);
                 Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
             float rtStructureRatio = mech.GetCurrentStructure(ChassisLocations.RightTorso) / mech.GetMaxStructure(ChassisLocations.RightTorso);
-            Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) rtStructureRatio: {rtStructureRatio}");
+            Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) rtStructureRatio: {rtStructureRatio}");
             if (rtStructureRatio < 1)
             {
                 ejectModifiers += SimpleEjectionSystem.Settings.SideTorsoInternalDamageMaxModifier * (1 - rtStructureRatio);
@@ -52,12 +51,12 @@ namespace SimpleEjectionSystem.Utilities
                 float remainingLegHealthRatio;
                 if (mech.LeftLegDamageLevel == LocationDamageLevel.Destroyed)
                 {
-                    Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Left leg destroyed");
+                    Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Left leg destroyed");
                     remainingLegHealthRatio = mech.GetRemainingHealthRatio(ArmorLocation.RightLeg);
                 }
                 else
                 {
-                    Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Right leg destroyed");
+                    Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Right leg destroyed");
                     remainingLegHealthRatio = mech.GetRemainingHealthRatio(ArmorLocation.LeftLeg);
                 }
                 if (remainingLegHealthRatio < 1)
@@ -70,7 +69,7 @@ namespace SimpleEjectionSystem.Utilities
             // Unsteady (Custom simple check as Mech.CheckForInstability is invoked in original method and this is called by a prefix)
             if (mech.CurrentStability > mech.UnsteadyThreshold)
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) is or will be unsteady");
+                Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) is or will be unsteady");
                 ejectModifiers += SimpleEjectionSystem.Settings.UnsteadyModifier;
                 Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
@@ -78,7 +77,7 @@ namespace SimpleEjectionSystem.Utilities
             // All weapons destroyed
             if (mech.Weapons.TrueForAll(w => w.DamageLevel == ComponentDamageLevel.Destroyed || w.DamageLevel == ComponentDamageLevel.NonFunctional))
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) All weapons destroyed");
+                Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) All weapons destroyed");
                 ejectModifiers += SimpleEjectionSystem.Settings.WeaponlessModifier;
                 Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
@@ -91,7 +90,7 @@ namespace SimpleEjectionSystem.Utilities
             int isOutnumberedBy = Math.Max(0, (allLivingEnemyMechs - allLivingAlliedMechs));
             if (isOutnumberedBy > 0)
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) isOutnumberedBy: {isOutnumberedBy}");
+                Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) isOutnumberedBy: {isOutnumberedBy}");
                 ejectModifiers += (isOutnumberedBy * SimpleEjectionSystem.Settings.OutnumberedPerMechModifier);
                 Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
@@ -99,14 +98,14 @@ namespace SimpleEjectionSystem.Utilities
             // Alone
             if (mech.Combat.GetAllAlliesOf(mech).TrueForAll(m => m.IsDead || m == mech))
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Alone");
+                Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Alone");
                 ejectModifiers += SimpleEjectionSystem.Settings.AloneModifier;
                 Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
 
             // Pilot's health
             float pilotHealthRatio = ((pilot.Health - pilot.Injuries) / pilot.Health); // Don't use "TotalHealth" here, as Injuries only start to occur after "BonusHealth" is gone
-            Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) pilotHealthRatio: {pilotHealthRatio} (H:{(pilot.Health - pilot.Injuries)}/{pilot.Health})");
+            Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) pilotHealthRatio: {pilotHealthRatio} (H:{(pilot.Health - pilot.Injuries)}/{pilot.Health})");
             if (pilotHealthRatio < 1)
             {
                 ejectModifiers += SimpleEjectionSystem.Settings.PilotHealthMaxModifier * (1 - pilotHealthRatio);
@@ -122,7 +121,7 @@ namespace SimpleEjectionSystem.Utilities
             // Pilot's morale (Low spirits)
             if (pilot.HasLowMorale)
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Pilot has low spirits");
+                Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Pilot has low spirits");
                 ejectModifiers += SimpleEjectionSystem.Settings.PilotLowMoraleModifier;
                 Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
@@ -139,15 +138,16 @@ namespace SimpleEjectionSystem.Utilities
             int pilotRemainingHealth = pilot.Health - pilot.Injuries; // Don't use "TotalHealth" here, as Injuries only start to occur after "BonusHealth" is gone
             if (mech.CheckForInstability() && pilotRemainingHealth == 1)
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Is going to die!");
+                Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) Is going to die!");
                 isGoingToDie = true;
                 Logger.Info($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) out isGoingToDie: {isGoingToDie}");
             }
             Logger.Debug($"[Assess_GetEjectionModifiersFromState] ({mech.DisplayName}) ---> ejectModifiers: {ejectModifiers}");
-            Logger.Info("---");
 
             return ejectModifiers;
         }
+
+
 
         public static float GetEjectionModifiersFromAttack(Mech mech, AttackDirector.AttackSequence attackSequence)
         {
@@ -157,7 +157,7 @@ namespace SimpleEjectionSystem.Utilities
             // Attack destroyed any location
             if (attackSequence.GetAttackDestroyedAnyLocation(mech.GUID))
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) just lost a location");
+                Logger.Info($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) just lost a location");
                 ejectModifiers += SimpleEjectionSystem.Settings.AttackDestroyedAnyLocationModifier;
                 Logger.Info($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
@@ -165,7 +165,7 @@ namespace SimpleEjectionSystem.Utilities
             // Attack caused ammo explosion
             if (attackSequence.GetAttackCausedAmmoExplosion(mech.GUID))
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) just suffered an ammo explosion");
+                Logger.Info($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) just suffered an ammo explosion");
                 ejectModifiers += SimpleEjectionSystem.Settings.AttackCausedAmmoExplosionModifier;
                 Logger.Info($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
@@ -173,7 +173,7 @@ namespace SimpleEjectionSystem.Utilities
             // Lost one or more weapons
             if (attackSequence.GetAttackDestroyedWeapon(mech.GUID))
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) just lost one or more weapons");
+                Logger.Info($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) just lost one or more weapons");
                 ejectModifiers += SimpleEjectionSystem.Settings.AttackDestroyedWeaponModifier;
                 Logger.Info($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
@@ -188,15 +188,16 @@ namespace SimpleEjectionSystem.Utilities
             Logger.Info($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) mostVulnerableLocation: {mostVulnerableLocation}");
             if (mostVulnerableLocation <= attackSequence.cumulativeDamage)
             {
-                Logger.Debug($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) Next shot like that could kill({attackSequence.cumulativeDamage} dmg)");
+                Logger.Info($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) Next shot like that could kill({attackSequence.cumulativeDamage} dmg)");
                 ejectModifiers += SimpleEjectionSystem.Settings.NextShotLikeThatCouldKillModifier;
                 Logger.Info($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) -> ejectModifiers: {ejectModifiers}");
             }
             Logger.Debug($"[Assess_GetEjectionModifiersFromAttack] ({mech.DisplayName}) ---> ejectModifiers: {ejectModifiers}");
-            Logger.Info("---");
 
             return ejectModifiers;
         }
+
+
 
         public static float GetResistanceModifiers(Mech mech, bool includeCeaseFireModifiers = false, bool log = true)
         {
@@ -213,7 +214,7 @@ namespace SimpleEjectionSystem.Utilities
             float baseResistance = SimpleEjectionSystem.Settings.BaseEjectionResist;
             if (baseResistance > 0)
             {
-                Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) baseResistance: {baseResistance}");
+                Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) baseResistance: {baseResistance}");
                 resistModifiers += baseResistance;
                 Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
             }
@@ -223,13 +224,13 @@ namespace SimpleEjectionSystem.Utilities
             if (guts > 0)
             {
                 float gutsResistance = (guts * SimpleEjectionSystem.Settings.GutsEjectionResistPerPoint);
-                Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) gutsResistance: {gutsResistance}");
+                Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) gutsResistance: {gutsResistance}");
                 resistModifiers += gutsResistance;
 
                 // Guts of 10  grants extra resistance
                 if (guts >= 10)
                 {
-                    Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) Has guts of 10");
+                    Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) Has guts of 10");
                     resistModifiers += SimpleEjectionSystem.Settings.GutsTenAddEjectionResist;
                 }
                 Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
@@ -239,7 +240,7 @@ namespace SimpleEjectionSystem.Utilities
             bool isCommanderFielded = mech.Combat.GetAllAlliesOf(mech).TrueForAll(m => m.GetPilot() != null && m.GetPilot().IsPlayerCharacter);
             if (isCommanderFielded)
             {
-                Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) isCommanderFielded: {isCommanderFielded}");
+                Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) isCommanderFielded: {isCommanderFielded}");
                 resistModifiers += SimpleEjectionSystem.Settings.CommanderFieldedEjectionResist;
                 Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
             }
@@ -247,7 +248,7 @@ namespace SimpleEjectionSystem.Utilities
             // Inspired
             if (mech.IsMoraleInspired)
             {
-                Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) isMoraleInspired: {mech.IsMoraleInspired}");
+                Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) isMoraleInspired: {mech.IsMoraleInspired}");
                 resistModifiers += SimpleEjectionSystem.Settings.InspiredEjectionResist;
                 Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
             }
@@ -255,7 +256,7 @@ namespace SimpleEjectionSystem.Utilities
             // Pilot's morale (High spirits)
             if (p != null && p.HasLowMorale)
             {
-                Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) Pilot has high spirits");
+                Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) Pilot has high spirits");
                 resistModifiers += SimpleEjectionSystem.Settings.PilotHighMoraleEjectionResist;
                 Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
             }
@@ -267,8 +268,8 @@ namespace SimpleEjectionSystem.Utilities
                 if (p != null && (mech.team.IsLocalPlayer && mech.team.CompanyMorale > 0))
                 {
                     float moraleUtilizationRate = p.pilotDef.GetRelativeCombatExperience();
-                    Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) moraleUtilizationRate: {moraleUtilizationRate}");
-                    Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) mech.team.CompanyMorale: {mech.team.CompanyMorale}");
+                    Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) moraleUtilizationRate: {moraleUtilizationRate}");
+                    Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) mech.team.CompanyMorale: {mech.team.CompanyMorale}");
                     resistModifiers += moraleUtilizationRate * mech.team.CompanyMorale;
                     Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
                 }
@@ -276,7 +277,7 @@ namespace SimpleEjectionSystem.Utilities
                 // Pilot is still at full health
                 if (p != null && p.Injuries <= 0)
                 {
-                    Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) Pilot still has full health");
+                    Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) Pilot still has full health");
                     resistModifiers += SimpleEjectionSystem.Settings.PilotStillAtFullHealthModifier;
                     Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
                 }
@@ -285,14 +286,12 @@ namespace SimpleEjectionSystem.Utilities
                 float mechHealthRatio = (mech.SummaryStructureCurrent + mech.SummaryArmorCurrent) / (mech.SummaryStructureMax + mech.SummaryArmorMax);
                 if (mechHealthRatio >= 0.85)
                 {
-                    Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) mechHealthRatio: {mechHealthRatio}");
+                    Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) mechHealthRatio: {mechHealthRatio}");
                     resistModifiers += SimpleEjectionSystem.Settings.MechStillAtGoodHealthModifier;
                     Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
                 }
             }
-
             Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) ---> resistModifiers: {resistModifiers}");
-            Logger.Info("---");
 
             if (!log)
             {

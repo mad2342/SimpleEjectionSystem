@@ -27,7 +27,7 @@ namespace SimpleEjectionSystem.Patches
                     bool isGoingToDie = pilotHealthOne && shutdownCausesInjury;
                     Logger.Debug($"[MechShutdownSequence_CheckForHeatDamage_PREFIX] ({mech.DisplayName}) Is going to die: {isGoingToDie}");
 
-                    if (isGoingToDie && Actor.RollForEjection(mech, 4, SimpleEjectionSystem.Settings.IsGoingToDieEjectionChance))
+                    if (isGoingToDie && Actor.RollForEjection(mech, SimpleEjectionSystem.Settings.PointlessEjectionChance))
                     {
                         // Off he goes
                         mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
@@ -37,7 +37,7 @@ namespace SimpleEjectionSystem.Patches
                     }
 
                     Logger.Debug($"[MechShutdownSequence_CheckForHeatDamage_PREFIX] ({mech.DisplayName}) Pilot is desperate: {pilot.IsDesperate()}");
-                    if (pilot.IsDesperate() && Actor.RollForEjection(mech, 4, pilot.GetLastEjectionChance()))
+                    if (pilot.IsDesperate() && Actor.RollForEjection(mech, pilot.GetLastEjectionChance()))
                     {
                         // Off he goes
                         mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
@@ -123,12 +123,23 @@ namespace SimpleEjectionSystem.Patches
                     }
 
                     int stressLevel = pilot.GetStressLevel();
-                    bool canFocus = __instance.IsOperational && !__instance.IsProne && stressLevel > 0;
-                    Logger.Debug($"[Mech_OnNewRound_POSTFIX] ({__instance.DisplayName}) canFocus: {canFocus}");
+                    bool isUpright = __instance.IsOperational && !__instance.IsProne;
+                    bool isHopeless = isUpright && __instance.IsUseless();
+                    bool tryFocus = isUpright && stressLevel > 0;
+                    Logger.Debug($"[Mech_OnNewRound_POSTFIX] ({__instance.DisplayName}) isHopeless: {isHopeless}");
+                    Logger.Debug($"[Mech_OnNewRound_POSTFIX] ({__instance.DisplayName}) tryFocus: {tryFocus}");
 
-                    if (canFocus && Actor.TryReduceStressLevel(__instance, pilot, out stressLevel))
+                    if (isHopeless && Actor.RollForEjection(__instance, SimpleEjectionSystem.Settings.PointlessEjectionChance))
+                    {
+                        // Off he goes
+                        __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(__instance, "HOPELESS!", FloatieMessage.MessageNature.PilotInjury, true)));
+                        __instance.EjectPilot(__instance.GUID, -1, DeathMethod.PilotEjection, false);
+                    }
+
+                    if (tryFocus && Actor.TryReduceStressLevel(__instance, pilot, out stressLevel))
                     {
                         __instance.Combat.MessageCenter.PublishMessage(new FloatieMessage(__instance.GUID, __instance.GUID, "RESOLUTE!", FloatieMessage.MessageNature.Inspiration));
+                        Logger.Debug($"[Mech_OnNewRound_POSTFIX] ({__instance.DisplayName}) Reduced stress level: {stressLevel}");
                     }
 
                     // Player only floatie
@@ -210,15 +221,46 @@ namespace SimpleEjectionSystem.Patches
                     foreach (string id in allEffectedTargetIds)
                     {
                         ICombatant combatant = __instance.directorSequences[0].Director.Combat.FindCombatantByGUID(id);
-                        Logger.Debug($"[AttackStackSequence_OnAttack_Complete_PREFIX] allEffectedTargets: {combatant.DisplayName}");
+                        Logger.Debug($"[AttackStackSequence_OnAttack_Complete_PREFIX] ------> AFFECTED TARGET: {combatant.DisplayName}");
+
+                        if ((combatant is Mech mech) && Attack.TryPenetrateStressResistance(mech, attackCompleteMessage.attackSequence, out int stressLevel, out float ejectionChance))
+                        {
+                            if (Actor.RollForEjection(mech, stressLevel, ejectionChance))
+                            {
+                                mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
+                                mech.EjectPilot(mech.GUID, attackCompleteMessage.stackItemUID, DeathMethod.PilotEjection, false);
+
+                                // Ejections as a direct result of an attack should count as kills
+                                if (__instance.directorSequences[0].attacker is Mech attackingMech && attackingMech.GetPilot() != null)
+                                {
+                                    Pilot attackingPilot = attackingMech.GetPilot();
+                                    attackingPilot.LogMechKillInflicted(-1, attackingPilot.GUID);
+                                }
+                            }
+                            else
+                            {
+                                string floatieMessage = Miscellaneous.GetStressLevelString(stressLevel);
+                                mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, floatieMessage, FloatieMessage.MessageNature.PilotInjury, true)));
+                            }
+                        }
                     }
 
+
+
+                    /* Only rolling on chosen target, ignoring stray shots...
                     if ((__instance.directorSequences[0].chosenTarget is Mech mech) && Attack.TryPenetrateStressResistance(mech, attackCompleteMessage.attackSequence, out int stressLevel, out float ejectionChance))
                     {
                         if (Actor.RollForEjection(mech, stressLevel, ejectionChance))
                         {
                             mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
                             mech.EjectPilot(mech.GUID, attackCompleteMessage.stackItemUID, DeathMethod.PilotEjection, false);
+
+                            // Ejections as a direct result of an attack should count as kills
+                            if (__instance.directorSequences[0].attacker is Mech attackingMech && attackingMech.GetPilot() != null)
+                            {
+                                Pilot attackingPilot = attackingMech.GetPilot();
+                                attackingPilot.LogMechKillInflicted(-1, attackingPilot.GUID);
+                            }
                         }
                         else
                         {
@@ -226,6 +268,7 @@ namespace SimpleEjectionSystem.Patches
                             mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, floatieMessage, FloatieMessage.MessageNature.PilotInjury, true)));
                         }
                     }
+                    */
                 }
                 catch (Exception e)
                 {

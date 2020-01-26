@@ -2,6 +2,7 @@
 using BattleTech;
 using SimpleEjectionSystem.Extensions;
 using SimpleEjectionSystem.Utilities;
+using UnityEngine;
 
 namespace SimpleEjectionSystem.Control
 {
@@ -50,7 +51,7 @@ namespace SimpleEjectionSystem.Control
             if (isGoingToDie)
             {
                 stressLevel = pilot.SetStressLevel(4).GetStressLevel();
-                ejectionChance = SimpleEjectionSystem.Settings.IsGoingToDieEjectionChance;
+                ejectionChance = SimpleEjectionSystem.Settings.PointlessEjectionChance;
                 return true;
             }
 
@@ -67,7 +68,6 @@ namespace SimpleEjectionSystem.Control
             if (finalModifiers <= 0)
             {
                 Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) RESISTED!");
-                Logger.Info("---");
                 return false;
             }
             Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) Resistances BREACHED!");
@@ -77,15 +77,14 @@ namespace SimpleEjectionSystem.Control
             Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) stressLevel: {stressLevel}");
 
             // Sanitize ejection chance
-            ejectionChance = Math.Min(100, finalModifiers);
+            //ejectionChance = Math.Min(95, finalModifiers);
+            ejectionChance = Mathf.Clamp(ejectionChance, 0, SimpleEjectionSystem.Settings.EjectionChanceMax);
             Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) ejectionChance: {ejectionChance}");
 
             // Save ejection chance in pilot's StatCollection to potentially use it on next activation
             pilot.SetLastEjectionChance(ejectionChance);
 
             
-
-            Logger.Info("---");
 
             return true;
         }

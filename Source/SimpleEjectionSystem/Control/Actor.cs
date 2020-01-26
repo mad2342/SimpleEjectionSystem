@@ -15,7 +15,7 @@ namespace SimpleEjectionSystem.Control
             int randomRoll = (new System.Random()).Next(100);
             float resistanceChance = Math.Min(modifiers, 95);
             bool success = (randomRoll < resistanceChance);
-            Logger.Info($"[Actor_TryResistStressIncrease] ({mech.DisplayName})  Success: {success}");
+            Logger.Debug($"[Actor_TryResistStressIncrease] ({mech.DisplayName})  Success: {success}");
             stressLevel = success ? pilot.GetStressLevel() : pilot.IncreaseStressLevel(1).GetStressLevel();
 
             return success;
@@ -29,7 +29,7 @@ namespace SimpleEjectionSystem.Control
             int randomRoll = (new System.Random()).Next(100);
             float reductionChance = Math.Min(modifiers, 95);
             bool success = (randomRoll < reductionChance);
-            Logger.Info($"[Actor_TryReduceStressLevel] ({mech.DisplayName}) Success: {success}");
+            Logger.Debug($"[Actor_TryReduceStressLevel] ({mech.DisplayName}) Success: {success}");
             stressLevel = success ? pilot.DecreaseStressLevel(1).GetStressLevel() : pilot.GetStressLevel();
 
             return success;
@@ -43,15 +43,26 @@ namespace SimpleEjectionSystem.Control
             int randomRoll = (new System.Random()).Next(100);
             float resistanceChance = Math.Min(modifiers, 95);
             bool success = (randomRoll < resistanceChance);
-            Logger.Info($"[Actor_TryResistEjection] ({mech.DisplayName}) Success: {success}");
+            Logger.Debug($"[Actor_TryResistEjection] ({mech.DisplayName}) Success: {success}");
 
             criticalSuccess = randomRoll < 5;
-            Logger.Info($"[Actor_TryResistEjection] ({mech.DisplayName}) Critical success: {criticalSuccess}");
+            Logger.Debug($"[Actor_TryResistEjection] ({mech.DisplayName}) Critical success: {criticalSuccess}");
 
             return success;
         }
 
         public static bool RollForEjection(Mech mech, int stressLevel, float chance)
+        {
+            if (stressLevel < 4)
+            {
+                Logger.Debug($"[Actor_RollForEjection] ({mech.DisplayName}) Exiting! (Non critical stress level: {stressLevel})");
+                return false;
+            }
+
+            return RollForEjection(mech, chance);
+        }
+
+        public static bool RollForEjection(Mech mech, float chance)
         {
             Pilot pilot = mech.GetPilot();
 
@@ -68,12 +79,9 @@ namespace SimpleEjectionSystem.Control
                 return false;
             }
 
-            float ejectionChance = Math.Min(chance, SimpleEjectionSystem.Settings.EjectionChanceMax);
-            bool criticalStressLevel = stressLevel >= 4;
-
             int randomRoll = (new System.Random()).Next(100);
-            bool success = criticalStressLevel && (randomRoll < ejectionChance);
-            Logger.Info($"[Actor_RollForEjection] ({mech.DisplayName}) Resisted: {!success}");
+            bool success = (randomRoll < chance);
+            Logger.Debug($"[Actor_RollForEjection] ({mech.DisplayName}) Resisted: {!success}");
 
             return success;
         }

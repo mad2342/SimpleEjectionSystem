@@ -3,7 +3,7 @@
     internal class Settings
     {
         public float EjectionChanceMax = 25f;
-        public float IsGoingToDieEjectionChance = 90f;
+        public float PointlessEjectionChance = 90f;
 
         // Exits
         public bool PlayerCharacterAlwaysResists = true;
