@@ -56,10 +56,27 @@ namespace SimpleEjectionSystem.Control
             }
 
             ejectModifiers += Assess.GetEjectionModifiersFromAttack(mech, attackSequence);
-
+            
             // Resistance modifiers
             float resistModifiers = 0;
             resistModifiers += Assess.GetResistanceModifiers(mech);
+
+
+            // Difficulty
+            
+            /*
+            if (mech.team.IsLocalPlayer)
+            {
+                float difficultyMultiplier = Miscellaneous.GetMultiplierForDifficulty(SimpleEjectionSystem.Settings.Difficulty);
+                Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) difficultyMultiplier: {difficultyMultiplier}");
+
+                ejectModifiers *= difficultyMultiplier;
+                Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) ejectModifiers: {ejectModifiers}");
+
+                resistModifiers /= difficultyMultiplier;
+                Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) resistModifiers: {resistModifiers}");
+            }
+            */
 
             // Evaluate
             float finalModifiers = (ejectModifiers - resistModifiers) * 5;
@@ -71,6 +88,7 @@ namespace SimpleEjectionSystem.Control
                 return false;
             }
             Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) Resistances BREACHED!");
+            pilot.AddHardship();
 
             // Raise pilot's stresslevel
             stressLevel = pilot.IncreaseStressLevel(1).GetStressLevel();
@@ -78,7 +96,7 @@ namespace SimpleEjectionSystem.Control
 
             // Sanitize ejection chance
             //ejectionChance = Math.Min(95, finalModifiers);
-            ejectionChance = Mathf.Clamp(ejectionChance, 0, SimpleEjectionSystem.Settings.EjectionChanceMax);
+            ejectionChance = Mathf.Clamp(finalModifiers, 0, SimpleEjectionSystem.Settings.EjectionChanceMax);
             Logger.Debug($"[Attack_TryPenetrateStressResistance] ({mech.DisplayName}) ejectionChance: {ejectionChance}");
 
             // Save ejection chance in pilot's StatCollection to potentially use it on next activation

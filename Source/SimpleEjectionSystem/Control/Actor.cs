@@ -80,6 +80,7 @@ namespace SimpleEjectionSystem.Control
             }
 
             int randomRoll = (new System.Random()).Next(100);
+            mech.AddEjectionRoll();
             bool success = (randomRoll < chance);
             Logger.Debug($"[Actor_RollForEjection] ({mech.DisplayName}) Resisted: {!success}");
 

@@ -2,6 +2,8 @@
 {
     internal class Settings
     {
+        // Normal: 1, Harder: 2, Darkest: 3 
+        public int Difficulty = 1;
         public float EjectionChanceMax = 25f;
         public float PointlessEjectionChance = 90f;
 

@@ -6,6 +6,24 @@ namespace SimpleEjectionSystem.Utilities
 {
     public static class Miscellaneous
     {
+        public static float GetResistanceMultiplierForDifficulty(int difficulty)
+        {
+            switch (difficulty)
+            {
+                // Normal
+                case 1:
+                    return 1f;
+                // Harder
+                case 2:
+                    return 0.75f;
+                // Darkest
+                case 3:
+                    return 0.5f;
+                default:
+                    return 1f;
+            }
+        }
+
         public static bool TryGetStressLevelColor(string str, out Color color)
         {
             switch (str)
@@ -23,6 +41,9 @@ namespace SimpleEjectionSystem.Utilities
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.orange;
                     return true;
                 case "DESPERATE":
+                // Add some special cases for convenience
+                case "HOPELESS!":
+                case "PANICKED!":
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.red;
                     return true;
                 default:

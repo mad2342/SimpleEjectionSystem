@@ -293,6 +293,20 @@ namespace SimpleEjectionSystem.Utilities
             }
             Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) ---> resistModifiers: {resistModifiers}");
 
+
+
+            // Difficulty setting
+            if (mech.team.IsLocalPlayer)
+            {
+                float resistanceMultiplier = Miscellaneous.GetResistanceMultiplierForDifficulty(SimpleEjectionSystem.Settings.Difficulty);
+                Logger.Debug($"[Assess_GetResistanceModifiers] (DIFFICULTY {SimpleEjectionSystem.Settings.Difficulty}) resistanceMultiplier: {resistanceMultiplier}");
+
+                resistModifiers *= resistanceMultiplier;
+                Logger.Debug($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) ------> resistModifiers: {resistModifiers}");
+            }
+
+
+
             if (!log)
             {
                 Logger.Wake();

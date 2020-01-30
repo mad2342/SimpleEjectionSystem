@@ -123,5 +123,22 @@ namespace SimpleEjectionSystem.Extensions
             Logger.Info($"[PilotExtensions_IsDesperate] ({pilot.Callsign}) IsDesperate: {(sl >= 4)}");
             return (sl >= 4);
         }
+
+        public static void AddHardship(this Pilot pilot)
+        {
+            int hs;
+            if (pilot.StatCollection.ContainsStatistic("Hardships"))
+            {
+                hs = pilot.StatCollection.GetValue<int>("Hardships");
+                hs++;
+                pilot.StatCollection.Set<int>("Hardships", hs);
+            }
+            else
+            {
+                hs = 1;
+                pilot.StatCollection.AddStatistic<int>("Hardships", hs);
+            }
+            Logger.Info($"[PilotExtensions_AddHardship] ({pilot.Callsign}) Hardships: {hs}");
+        }
     }
 }
