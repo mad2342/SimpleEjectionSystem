@@ -156,6 +156,7 @@ namespace SimpleEjectionSystem.Patches
             }
         }
 
+        // @ToDo: In rare occasions this can lead to jumping mechs with an already ejected pilot(!), probably use OrderSequence.OnAdded() instead?
         [HarmonyPatch(typeof(AbstractActor), "OnActivationBegin")]
         public static class AbstractActor_OnActivationBegin_Patch
         {
