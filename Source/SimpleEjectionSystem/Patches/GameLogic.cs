@@ -11,6 +11,68 @@ namespace SimpleEjectionSystem.Patches
 {
     class GameLogic
     {
+        [HarmonyPatch(typeof(MechFallSequence), "OnComplete")]
+        public static class MechFallSequence_OnComplete_Patch
+        {
+            public static void Prefix(MechFallSequence __instance)
+            {
+                try
+                {
+                    Mech mech = __instance.OwningMech;
+                    Pilot pilot = mech.pilot;
+                    Logger.Debug($"[MechFallSequence_OnComplete_PREFIX] ({mech.DisplayName}) Is falling");
+
+                    bool pilotHealthOne = pilot.Health - pilot.Injuries <= 1;
+                    bool isBecomingProne = mech.IsBecomingProne;
+                    bool isGoingToDie = pilotHealthOne && isBecomingProne;
+                    Logger.Debug($"[MechFallSequence_OnComplete_PREFIX] ({mech.DisplayName}) Is going to die: {isGoingToDie}");
+
+                    if (isGoingToDie && Actor.RollForEjection(mech, SimpleEjectionSystem.Settings.PointlessEjectionChance))
+                    {
+                        // Off he goes
+                        mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
+                        mech.EjectPilot(mech.GUID, -1, DeathMethod.PilotEjection, false);
+
+                        return;
+                    }
+
+                    Logger.Debug($"[MechFallSequence_OnComplete_PREFIX] ({mech.DisplayName}) Pilot is desperate: {pilot.IsDesperate()}");
+                    if (pilot.IsDesperate() && Actor.RollForEjection(mech, pilot.GetLastEjectionChance()))
+                    {
+                        // Off he goes
+                        mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
+                        mech.EjectPilot(mech.GUID, -1, DeathMethod.PilotEjection, false);
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e);
+                }
+            }
+
+            public static void Postfix(MechFallSequence __instance)
+            {
+                try
+                {
+                    Mech mech = __instance.OwningMech;
+                    Pilot pilot = mech.pilot;
+                    Logger.Debug($"[MechFallSequence_OnComplete_POSTFIX] ({mech.DisplayName}) Is falling");
+
+                    if (!Actor.TryResistStressIncrease(mech, pilot, out int stressLevel))
+                    {
+                        string floatieMessage = Miscellaneous.GetStressLevelString(stressLevel);
+                        mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, floatieMessage, FloatieMessage.MessageNature.PilotInjury, true)));
+                    }
+                }
+                catch (Exception e)
+                {
+                    Logger.Error(e);
+                }
+            }
+        }
+
+
+
         [HarmonyPatch(typeof(MechShutdownSequence), "CheckForHeatDamage")]
         public static class MechShutdownSequence_CheckForHeatDamage_Patch
         {
@@ -96,7 +158,7 @@ namespace SimpleEjectionSystem.Patches
                     if (stressLevel > 0)
                     {
                         stressLevel = pilot.DecreaseStressLevel(2).GetStressLevel();
-                        __instance.Combat.MessageCenter.PublishMessage(new FloatieMessage(__instance.GUID, __instance.GUID, "RESOLUTE!", FloatieMessage.MessageNature.Inspiration));
+                        __instance.Combat.MessageCenter.PublishMessage(new FloatieMessage(__instance.GUID, __instance.GUID, "REASSURED!", FloatieMessage.MessageNature.Inspiration));
 
                         string floatieMessage = Miscellaneous.GetStressLevelString(stressLevel);
                         __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(__instance, floatieMessage, FloatieMessage.MessageNature.PilotInjury, true)));
