@@ -6,38 +6,31 @@ using SimpleEjectionSystem.Extensions;
 using SimpleEjectionSystem.Utilities;
 using SimpleEjectionSystem.Control;
 using HBS;
+using UnityEngine;
 
 namespace SimpleEjectionSystem.Patches
 {
     class GameLogic
     {
-        [HarmonyPatch(typeof(MechFallSequence), "OnComplete")]
-        public static class MechFallSequence_OnComplete_Patch
+        [HarmonyPatch(typeof(MechDisplacementSequence), "ApplyDamage")]
+        public static class MechDisplacementSequence_ApplyDamage_Patch
         {
-            public static void Prefix(MechFallSequence __instance)
+            public static void Prefix(MechDisplacementSequence __instance)
             {
                 try
                 {
                     Mech mech = __instance.OwningMech;
                     Pilot pilot = mech.pilot;
-                    Logger.Debug($"[MechFallSequence_OnComplete_PREFIX] ({mech.DisplayName}) Is falling");
+                    Logger.Debug($"[MechDisplacementSequence_ApplyDamage_PREFIX] ({mech.DisplayName}) Is falling...");
 
-                    bool pilotHealthOne = pilot.Health - pilot.Injuries <= 1;
-                    bool isBecomingProne = mech.IsBecomingProne;
-                    bool isGoingToDie = pilotHealthOne && isBecomingProne;
-                    Logger.Debug($"[MechFallSequence_OnComplete_PREFIX] ({mech.DisplayName}) Is going to die: {isGoingToDie}");
+                    float expectedLegDamage = Mathf.Max(0f, mech.StatCollection.GetValue<float>("DFASelfDamage"));
+                    float leftLegHealth = mech.GetRemainingHealth(ArmorLocation.LeftLeg);
+                    float rightLegHealth = mech.GetRemainingHealth(ArmorLocation.RightLeg);
 
-                    if (isGoingToDie && Actor.RollForEjection(mech, SimpleEjectionSystem.Settings.PointlessEjectionChance))
-                    {
-                        // Off he goes
-                        mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
-                        mech.EjectPilot(mech.GUID, -1, DeathMethod.PilotEjection, false);
+                    bool isGoingToBeLegged = (leftLegHealth - expectedLegDamage <= 0) && (rightLegHealth - expectedLegDamage <= 0);
+                    Logger.Debug($"[MechDisplacementSequence_ApplyDamage_PREFIX] ({mech.DisplayName}) Is going to be legged: {isGoingToBeLegged}");
 
-                        return;
-                    }
-
-                    Logger.Debug($"[MechFallSequence_OnComplete_PREFIX] ({mech.DisplayName}) Pilot is desperate: {pilot.IsDesperate()}");
-                    if (pilot.IsDesperate() && Actor.RollForEjection(mech, pilot.GetLastEjectionChance()))
+                    if (isGoingToBeLegged && Actor.RollForEjection(mech, SimpleEjectionSystem.Settings.PointlessEjectionChance))
                     {
                         // Off he goes
                         mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
@@ -50,13 +43,44 @@ namespace SimpleEjectionSystem.Patches
                 }
             }
 
-            public static void Postfix(MechFallSequence __instance)
+            public static void Postfix(MechDisplacementSequence __instance)
             {
                 try
                 {
                     Mech mech = __instance.OwningMech;
                     Pilot pilot = mech.pilot;
-                    Logger.Debug($"[MechFallSequence_OnComplete_POSTFIX] ({mech.DisplayName}) Is falling");
+
+                    // Implemented as: pilot.IsIncapacitated || pilot.HasEjected || HeadStructure <= 0f || CenterTorsoStructure <= 0f || (LeftLegStructure <= 0f && RightLegStructure <= 0f) || HasHandledDeath
+                    if (mech.IsDead)
+                    {
+                        Logger.Debug($"[MechDisplacementSequence_ApplyDamage_POSTFIX] ({mech.DisplayName}) Is dead. Exiting");
+                        return;
+                    }
+
+                    bool pilotHealthOne = pilot.Health - pilot.Injuries <= 1;
+                    bool isBecomingProne = mech.StabilityPercentage >= 1f;
+                    Logger.Debug($"[MechDisplacementSequence_ApplyDamage_POSTFIX] ({mech.DisplayName}) StabilityPercentage: {mech.StabilityPercentage}");
+                    bool isGoingToDie = pilotHealthOne && isBecomingProne;
+                    Logger.Debug($"[MechDisplacementSequence_ApplyDamage_POSTFIX] ({mech.DisplayName}) Is going to die: {isGoingToDie}");
+
+                    if (isGoingToDie && Actor.RollForEjection(mech, SimpleEjectionSystem.Settings.PointlessEjectionChance))
+                    {
+                        // Off he goes
+                        mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
+                        mech.EjectPilot(mech.GUID, -1, DeathMethod.PilotEjection, false);
+
+                        return;
+                    }
+
+                    Logger.Debug($"[MechDisplacementSequence_ApplyDamage_POSTFIX] ({mech.DisplayName}) Pilot is desperate: {pilot.IsDesperate()}");
+                    if (pilot.IsDesperate() && Actor.RollForEjection(mech, pilot.GetLastEjectionChance()))
+                    {
+                        // Off he goes
+                        mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
+                        mech.EjectPilot(mech.GUID, -1, DeathMethod.PilotEjection, false);
+
+                        return;
+                    }
 
                     if (!Actor.TryResistStressIncrease(mech, pilot, out int stressLevel))
                     {
