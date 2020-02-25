@@ -242,25 +242,26 @@ namespace SimpleEjectionSystem.Patches
             }
         }
 
-        // @ToDo: In rare occasions this can lead to jumping mechs with an already ejected pilot(!), probably use OrderSequence.OnAdded() instead?
-        [HarmonyPatch(typeof(AbstractActor), "OnActivationBegin")]
-        public static class AbstractActor_OnActivationBegin_Patch
+
+
+        [HarmonyPatch(typeof(Mech), "OnActivationEnd")]
+        public static class Mech_OnActivationEnd_Patch
         {
-            public static void Prefix(AbstractActor __instance)
+            public static void Postfix(Mech __instance)
             {
                 try
                 {
                     Pilot pilot = __instance.GetPilot();
-                    if (!(__instance is Mech mech) || pilot == null)
+                    if (pilot == null)
                     {
                         return;
                     }
 
-                    if (!mech.HasBegunActivation && pilot.IsDesperate())
+                    if (__instance.HasActivatedThisRound && pilot.IsDesperate())
                     {
-                        Logger.Debug($"[AbstractActor_OnActivationBegin_PREFIX] ({mech.DisplayName}) has not yet begun activation AND {pilot.Callsign} is desperate");
+                        Logger.Debug($"[AbstractActor_OnActivationBegin_POSTFIX] ({__instance.DisplayName}) will finish activation AND {pilot.Callsign} is desperate");
 
-                        if (Actor.TryResistEjection(mech, out bool criticalSuccess))
+                        if (Actor.TryResistEjection(__instance, out bool criticalSuccess))
                         {
                             if (criticalSuccess)
                             {
@@ -275,13 +276,14 @@ namespace SimpleEjectionSystem.Patches
                         }
                         else
                         {
-                            if (Actor.RollForEjection(mech, pilot.GetStressLevel(), pilot.GetLastEjectionChance()))
+                            if (Actor.RollForEjection(__instance, pilot.GetStressLevel(), pilot.GetLastEjectionChance()))
                             {
                                 // Off he goes
-                                mech.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(mech, "PANICKED!", FloatieMessage.MessageNature.PilotInjury, true)));
-                                mech.EjectPilot(mech.GUID, -1, DeathMethod.PilotEjection, false);
+                                __instance.Combat.MessageCenter.PublishMessage(new AddSequenceToStackMessage(new ShowActorInfoSequence(__instance, "FAITHLESS!", FloatieMessage.MessageNature.PilotInjury, true)));
+                                __instance.EjectPilot(__instance.GUID, -1, DeathMethod.PilotEjection, false);
                             }
                         }
+                        __instance.HandleDeath(__instance.GUID);
                     }
                 }
                 catch (Exception e)

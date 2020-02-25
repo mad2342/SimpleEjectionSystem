@@ -43,6 +43,7 @@ namespace SimpleEjectionSystem.Utilities
                 case "DESPERATE":
                 // Add some special cases for convenience
                 case "HOPELESS!":
+                case "FAITHLESS!":
                 case "PANICKED!":
                     color = LazySingletonBehavior<UIManager>.Instance.UIColorRefs.red;
                     return true;
