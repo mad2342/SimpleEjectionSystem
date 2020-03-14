@@ -261,7 +261,7 @@ namespace SimpleEjectionSystem.Utilities
                 Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
             }
 
-            // Include modifiers for rolls during firing pauses (OnNewRound, OnActivation)
+            // Include modifiers for rolls during firing pauses (OnNewRound)
             if (includeCeaseFireModifiers)
             {
                 // Company morale
@@ -288,6 +288,14 @@ namespace SimpleEjectionSystem.Utilities
                 {
                     Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) mechHealthRatio: {mechHealthRatio}");
                     resistModifiers += SimpleEjectionSystem.Settings.MechStillAtGoodHealthModifier;
+                    Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
+                }
+
+                // Mech is stable
+                if (!mech.IsUnsteady)
+                {
+                    Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) mech.IsUnsteady: {mech.IsUnsteady}");
+                    resistModifiers += SimpleEjectionSystem.Settings.MechIsStableModifier;
                     Logger.Info($"[Assess_GetResistanceModifiers] ({mech.DisplayName}) -> resistModifiers: {resistModifiers}");
                 }
             }

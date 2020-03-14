@@ -23,6 +23,7 @@
         // Additional resists for inbetween attacks
         public float PilotStillAtFullHealthModifier = 2;
         public float MechStillAtGoodHealthModifier = 2;
+        public float MechIsStableModifier = 2;
 
         // Static Modifiers
         public float PilotLowMoraleModifier = 2;
