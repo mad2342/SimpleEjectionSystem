@@ -252,8 +252,9 @@ namespace SimpleEjectionSystem.Patches
                 try
                 {
                     Pilot pilot = __instance.GetPilot();
-                    if (pilot == null)
+                    if (pilot == null || pilot.HasEjected)
                     {
+                        Logger.Debug($"[AbstractActor_OnActivationBegin_POSTFIX] ({__instance.DisplayName}) Pilot already has ejected, aborting...");
                         return;
                     }
 
