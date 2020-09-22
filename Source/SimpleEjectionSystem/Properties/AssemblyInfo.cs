@@ -6,5 +6,5 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("SimpleEjectionSystem")]
 [assembly: ComVisible(false)]
 [assembly: Guid("F55D2944-7D95-4604-B744-82350EC06E66")]
-[assembly: AssemblyVersion("1.8.1.*")]
+[assembly: AssemblyVersion("1.9.1.*")]
 
